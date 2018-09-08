@@ -6,3 +6,5 @@ Realizar uma consulta
 Inserir um cliente
 Editar a conta de um cliente
 Desvincular um cliente
+
+<b>Execute o comando 'make all'na pasta do projeto.</b>
