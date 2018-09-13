@@ -45,7 +45,7 @@ pularLinha: db '', 10,13,0
 msgInserirCliente: db 'Inserir Cliente', 10,13,0
 msgAlterarCliente: db 'Alterar Cliente', 10,13,0
 msgConsultarCliente: db 'Consultar Cliente', 10,13,0
-msgDesvincularCliente: db 'Insira o CPF do cliente', 10,13,0
+msgDesvincularCliente: db 'Desvincular Cliente', 10,13,0
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;Mensagems do menu
@@ -58,10 +58,6 @@ msgMenu4: db '  4)Desvincular Cliente',10,13,0
 msgMenu5: db '  5)Listar Agencias',10,13,0
 msgMenu6: db '  6)Listar Contas de uma Agencia',10,13,0
 msgMenu7: db '#############################',10,13,0
-
-dFNF_Msg: db 'Cliente não encontrado!', 10, 13, 0
-deletionEnd_msg: db 'Remoção completa, redirecionando para o menu', 10, 13, 0
-
 
 ;Mensagens do ValidaOpçao
 msgOpcaoError: db 'Por favor insira uma das opcoes citadas acima',10,13,0
@@ -88,15 +84,10 @@ msgListaConta: db 'Insira o numero da Agencia para saber as contas relacionadas:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
 msgNomeNaoEncontrado: db 'Nome nao encontrado',10,13,0
 msgNomeEncontrado: db 'Nome encontrado',10,13,0
 
 msgNumeroConta: db '00000', 13
-
-                                                               ;  ag*8    10,13 final do vetor
-															   ;    |       |     |
-agAuxMemo TIMES 57 DB 0 ;Memória auxiliar para consultar agencias (5*8) + (2*8) + 1
 
 ;46 * 8 + 1
 memoria TIMES   369    DB   0; declaro um vetor de 46*8 elemento e cada um contem 1 Byte e valor zero
@@ -105,8 +96,8 @@ nomeTemporario TIMES   21   DB   0; espaço para guardar temporariamente o nome 
 ;46 devido a
 	;(20 bytes pro nome 1byte fim do nome)
 	; (11 por cpf + 1 byte pro fim do cpf)
-	; (5 pra agencia + 1 pro fim da agencia )
-	; (6 pra conta + 1 pro fim da agencia)
+	; (5 pra agencia + 1 pro fim da agencoa )
+	; (6 pra conta + 1 pro fim da agencoa
 
 
 ;função de delay
@@ -131,7 +122,14 @@ ret
 
 
 
+;enttrada:nome do cliente
+;saida:0 caso nao encotrou nada
+		;'1':caso esteja na pos 1
+		;'2' caso esteja na pos 2 e assim por diante
+		;OBS:     retorna o numero em asc
 
+		;|1|2|3|4|5|6|7|8
+		;|0|0|0|0|0|0|0|0
 identificaCliente:
 	call limpaTela
 
@@ -201,10 +199,26 @@ identificaCliente:
 			jnc procuraPos
 
 		verificaNome:
+			call limpaTela
 			mov dx,cx;dx apartir de agora guarda o valor da posiçao d cliente
+
+			;NAo apagar essas tres linhas seguintes
+			add dl,'0'
+			mov al,'l'
+			mov ah, 0Eh
+			
+			
+				
+			mov dx,cx
+			
+
 			push ax
 			push cx
 			mov cx,0
+
+
+
+
 			verificaNome2:
 				;al contem caracter de nometemporarop 
 				;ah contem caracter de memoria
@@ -225,6 +239,10 @@ identificaCliente:
 				; (6 pra conta + 1 pro fim da agencoa
 				;mov dl,0
 				mul dl;dl contem o valor da posição do cliente
+
+
+
+
 
 				
 
@@ -269,14 +287,23 @@ identificaCliente:
 
 
 		nomeEncontrado:
-			mov si, msgNomeEncontrado
-			call printString
-			call delay
+			;mov si, msgNomeEncontrado
+			;call printString
+			;call delay
 
 			pop ax
 			pop ax;coloca em al a posição do cliente encotrado
 			mov ah,0
 			inc al
+
+			mov al,dl
+			inc al
+			add al,'0'
+
+			;mov ah, 0Eh
+			;mov bh,0
+			;int 0x10
+			;call delay
 			ret
 
 		naoEncontrado:
@@ -284,6 +311,7 @@ identificaCliente:
 			mov si, msgNomeNaoEncontrado
 			call printString
 			call delay
+			mov ax,0
 			ret
 
 
@@ -584,24 +612,30 @@ consultarCliente:
 
 
 	call identificaCliente
+	cmp al,0
+	je menu
 
 
 	call limpaTela
 	mov si,msgConsultarCliente
 	call printString
 	
+	
 	;captura caracter e coloca em al
-	mov ah,0
-	int 16h
-	;add al ,'0'
+		;mov ah,0
+		;int 16h
+		
 
 
 	;printa caracter q está em al
-	mov ah, 0Eh
-	mov bh,0
-	int 0x10
+		;mov ah, 0Eh
+		;mov bh,0
+		;int 0x10
 	
 	;
+
+
+
 	sub al,'0'
 	mov cl,al
 
@@ -689,41 +723,11 @@ consultarCliente:
 
 	ret
 
-consultarAgecias: ;lista todas as agencias
+desvincularCliente:; 
 	call limpaTela
-	mov si, msgConsultarAgencias ;Ainda tem que fazer essa string
+	mov si,msgDesvincularCliente
 	call printString
-
 	ret
-
-desvincularCliente:
-	call limpaTela
-	mov si, msgDesvincularCliente
-	call printString	
-					;para esta função, a posição do cliente deve estar no topo da pilha (pode ser alterado)
-	
-	pop ax 			;Coloca a posição do cliente em ax
-				
-	mov bx, 46
-	mul ax, bx ;multiplica 46 pela posição do cliente e salva em AX
-
-	add ax, 1 ;Soma um em ax para contar o mapa de bits
-
-	mov si, memoria
-	add si, ax  ;Soma a base da memória com ax, para posicionar SI no inicio do cliente a ser deletado
-
-	mov cx, 46 ;Coloca 46 em cx para fazer o loop
-
-	deletion:
-		mov byte[si], 0 ;Zera o byte de ax
-		add si, 1 ;si + 1 para zerar o próximo espaço
-		loop deletion
-
-	ret ;Retorna o controle para a parte de onde a função de deletar foi chamada
-
-    
-	
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 listarAgencia:
@@ -910,7 +914,25 @@ printString:
 
 
 
+limpaMem:
+	push cx
+	mov si,nomeTemporario
+	
+	mov cx,0
+	limpando:
+	
+		
 
+		mov byte[si] ,0 
+		inc si
+		add cx,1
+		cmp cx,20
+		;inc cx
+		jne limpando
+
+	
+	pop cx
+	ret
 
 ;atualmente estou limpando configurando um novo tipo de video
 ;Há jeito melhor, mas nao sei fazer...
@@ -933,7 +955,10 @@ main:
 
 	;Printa nome do segundo cliente
 	menu:
+	call limpaMem
+		
 		call limpaTela
+		
 		call printMenu
 		call validaOpcao;fica na subrotina até retorna uma das opções 1,2,3,4 no registrador al
 		jmp fim
@@ -949,6 +974,7 @@ main:
 	
 	callOpcao3:
 		call consultarCliente
+		
 		jmp menu
 
 	callOpcao4:
