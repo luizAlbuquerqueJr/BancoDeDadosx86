@@ -64,12 +64,25 @@ msgInserirConta: db 'Insira a conta do cliente',10,13,0
 msgInseridoSucesso: db 'Insercao concluida com sucesso!',10,13,0
 msgInserirCheio: db 'O BancoKOF esta lotado, procure o banco de Valgueiro XD!',10,13,0
 
+;;;;;;;;;;;;;;;;Mensagems usadas na consultarCliente
+msgConsultarCliente1: db 'Nome: ', 0
+msgConsultarCliente2: db 'CPF: ', 0
+msgConsultarCliente3: db 'Agencia: ', 0
+msgConsultarCliente4: db 'Conta: ',0
+
+
+
+
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+msgNomeNaoEncontrado: db 'Nome nao encontrado',10,13,0
+msgNomeEncontrado: db 'Nome encontrado',10,13,0
+
 
 memoria TIMES   46*8   DB   0; declaro um vetor de 46*8 elemento e cada um contem 1 Byte e valor zero
+nomeTemporario TIMES   21   DB   0; espaço para guardar temporariamente o nome durante consulta (o nome só pode ter 20 bytes)
 ;8 devido ao banco conter 8 clientes
 ;46 devido a
 	;(20 bytes pro nome 1byte fim do nome)
@@ -97,6 +110,166 @@ delay:
 	pop dx
 	pop bp
 ret
+
+
+
+
+identificaCliente:
+	call limpaTela
+
+;;;;;;captura nome e coloca na posição nomeTemporario
+		mov cx,20;20 caracteres
+		
+	
+		;printa msg para inseir nome
+		mov si,msgInserirNome
+		call printString
+		
+
+		
+		mov si,nomeTemporario
+		capturandoNome1:
+		
+		;captura caracter e coloca em al
+		mov ah,0
+		int 16h
+		mov byte[si],al
+		
+		cmp al,13
+		je verificaNome0;se o usuario apertar enter sai do laço
+
+		;printa caracter q está em al
+		mov ah, 0Eh
+		mov bh,0
+		int 0x10
+
+		
+		add si,1
+		
+		loop capturandoNome1
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;varifica se no banco existe algum nome igual
+
+		
+		verificaNome0:
+		call limpaTela
+		mov si, nomeTemporario
+		call printString
+
+
+
+		mov cl,0
+		mov si,memoria;move para si a base do vetor nome
+		mov al,byte[si];pega o mapa de bits
+		;mov al ,10111110b
+		
+		
+		
+		;procura posição ocupada
+			;|0|1|2|3|4|5|6|7|
+			;|0|0|0|0|0|0|0|0|
+
+		;cl indica onde o numero da posicao ocupada
+
+		procuraPos:
+			;mov al ,10111110b
+			cmp cl,8
+			je naoEncontrado;só é permitido 8 pessoas no banco
+
+			shl al,1;shift para esquerda e o bit "perdido é colocado na flag do carry"
+			jc verificaNome
+			inc cl
+			jnc procuraPos
+
+		verificaNome:
+			mov dx,cx;dx apartir de agora guarda o valor da posiçao d cliente
+			push ax
+			push cx
+			mov cx,0
+			verificaNome2:
+				;al contem caracter de nometemporarop 
+				;ah contem caracter de memoria
+
+				;captura caracter de nomeTemporario
+				mov si,nomeTemporario
+				add si, cx
+				mov al,byte[si]
+				;
+
+				;catura caracter de memoria
+
+				mov dh,al;salva o valor de al em dh para usar posteriormente
+
+				mov ax,46;(20 bytes pro nome 1byte fim do nome)
+				; (11 por cpf + 1 byte pro fim do cpf)
+				; (5 pra agencia + 1 pro fim da agencoa )
+				; (6 pra conta + 1 pro fim da agencoa
+				;mov dl,0
+				mul dl;dl contem o valor da posição do cliente
+
+				
+
+				mov si,memoria
+				inc si;pula byte do mapa
+				add si,ax;posiciona si para o cliente
+				add si,cx;acrescenta si para percorrer todo o vetor nome
+				
+				mov ah,byte[si]
+
+				mov al,dh;recupera o valor de al(do nome temporario)
+
+				cmp al,ah
+
+				;mov al,ah
+				;mov ah, 0Eh
+				;mov bh,0
+				;int 0x10
+				
+
+
+
+
+				jne procuraEmOutroCliente
+
+				cmp al,0
+				je nomeEncontrado
+
+				
+
+				inc cx
+				jmp verificaNome2
+
+
+
+
+		procuraEmOutroCliente:
+			pop cx
+			pop ax
+			jmp procuraPos
+
+
+
+		nomeEncontrado:
+			mov si, msgNomeEncontrado
+			call printString
+			call delay
+
+			pop ax
+			pop ax;coloca em al a posição do cliente encotrado
+			mov ah,0
+			inc al
+			ret
+
+		naoEncontrado:
+
+			mov si, msgNomeNaoEncontrado
+			call printString
+			call delay
+			ret
+
+
+
 
 
 
@@ -196,8 +369,9 @@ InserirCliente:
 	
 	 	
 	;jmp inserir
+	;cl indica onde estáa posiçao de memoria que será inserido o novo cliente
 
-	sub cl,1
+	sub cl,1;pra ele ocupar o segundo byte qnd a posiçao de memoria for igual 1
 	mov ax,46;(20 bytes pro nome 1byte fim do nome)
 	; (11 por cpf + 1 byte pro fim do cpf)
 	; (5 pra agencia + 1 pro fim da agencoa )
@@ -223,7 +397,7 @@ InserirCliente:
 		add si,ax
 		capturandoNome:
 		
-		
+		;captura caracter e coloca em al
 		mov ah,0
 		int 16h
 		mov byte[si],al
@@ -390,9 +564,112 @@ alterarCliente:
 	ret
 
 consultarCliente:
+
+
+	call identificaCliente
+
+
 	call limpaTela
 	mov si,msgConsultarCliente
 	call printString
+	
+	;captura caracter e coloca em al
+	mov ah,0
+	int 16h
+	;add al ,'0'
+
+
+	;printa caracter q está em al
+	mov ah, 0Eh
+	mov bh,0
+	int 0x10
+	
+	;
+	sub al,'0'
+	mov cl,al
+
+	;mov cl,1
+
+	sub cl,1;pra ele ocupar o segundo byte qnd a posiçao de memoria for igual 1
+	mov ax,46;(20 bytes pro nome 1byte fim do nome)
+	; (11 por cpf + 1 byte pro fim do cpf)
+	; (5 pra agencia + 1 pro fim da agencoa )
+	; (6 pra conta + 1 pro fim da agencoa
+	mul cl
+
+	inc ax;pula o primeiro byte q é o byte do mapa
+	push ax
+	call limpaTela
+
+	mov si,msgConsultarCliente1
+	call printString
+
+	;printa nome do cliente
+	mov si,memoria
+	add si, ax
+	call printString
+	;call delay	
+	
+	;
+	mov si, pularLinha
+	call printString
+
+
+	;printa cpf do cliente
+	mov si,msgConsultarCliente2
+	call printString
+
+	mov si,memoria
+	pop ax
+	add ax,21
+	add si,ax
+	push ax
+	call printString
+
+	mov si, pularLinha
+	call printString
+
+	;printa agencia do cliente
+	mov si,msgConsultarCliente3
+	call printString
+
+	mov si,memoria
+	pop ax
+	add ax,12
+	push ax
+	add si, ax
+	
+	call printString
+
+	mov si, pularLinha
+	call printString
+	
+
+	;printa conta do cliente
+	mov si,msgConsultarCliente4
+	call printString
+
+	mov si,memoria
+	pop ax
+	add ax,6
+	add si, ax
+	
+	call printString
+	
+
+	;mov si,msgConsultarCliente1
+	;call printString
+
+
+	;printa nome
+	
+
+
+	call delay
+	call delay
+	
+
+
 	ret
 
 desvincularCliente:; 
@@ -531,43 +808,8 @@ main:
 	menu:
 	;Printa nome do segundo cliente
 
-		;printa nome
-		mov si,memoria
-		inc si
-		add si, 46
-		call printString
-		call delay	
-		call limpaTela
-		;printa cpf
-		mov si, memoria
-		inc si
-		add si,46
-		add si, 21
-		call printString
-		call delay
-		call limpaTela
-		;printa agencia
-		mov si, memoria
-		inc si
-		add si,46
-		add si, 21
-		add si,12
-		call printString
-		call delay
-		call limpaTela
-		;printa conta
-		mov si, memoria
-		inc si
-		add si,46
-		add si, 21;pula nome
-		add si,12;pula cpf
-		add si,6;pula agencia 
-		call printString
-		call delay
-		call limpaTela
 
-	;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
+	call limpaTela
 	
 
 	call printMenu
@@ -598,7 +840,7 @@ main:
 		jmp fim
 	callOpcao3:
 		call consultarCliente
-		jmp fim
+		jmp menu
 	callOpcao4:
 		call desvincularCliente
 		jmp fim
