@@ -39,6 +39,8 @@ mov ah, 0Eh
 mov bh,0
 int 0x10
 ret
+;;;;;
+go_to_ag: db 33
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 pularLinha: db '', 10,13,0
@@ -694,7 +696,71 @@ consultarAgecias: ;lista todas as agencias
 	mov si, msgConsultarAgencias ;Ainda tem que fazer essa string
 	call printString
 
-	ret
+	mov ax, agAuxMemo ;coloca o endereço da memória auxiliar em AX
+
+	mov si, memoria 
+	add si, 1 ;Pula o mapa de bits
+
+	add si, 33 ;Soma 33 em si para ir para a base da primeira agencia
+
+	push ax ;Coloca Ax e SI na pilha
+	push si
+
+	call memToAux_in ;Até aqui, nós transferimos o primeiro valor
+
+    mov bx, 0 ;Utilizaremos bx como contador de loop pois estaremos utilizando cx
+
+	consultAgLoop:  ; bl controla o loop interno, bh controla o loop externo
+		cmp bh, 7    
+		je consultEnd
+
+		pop si
+		add si, 41 ; 41 = 8 (para ir até a base do próximo nome) + 33 (para ir até a agencia a partir da base)
+		push si ;Coloca o valor de si na pilha (pilha = [base próximo nome na memória, espaço vazio mem auxiliar])
+		
+		mov ax, agAuxMemo ;Coloca a base do auxiliar em AX
+		add bh, 1
+		mov bl, 0
+		cmpLoop:
+			cmp bl, 5
+			je cmpLoopTrue
+			cmp byte[si], byte[ax] ;Compara os valores para saber se a agência já foi lida
+			add bl, 1 ;Soma um em BX (já executei n comparações)
+			add si, 1
+			add ax, 1
+			je cmpLoop
+			jmp consultAgLoop
+
+	cmpLoopTrue:
+			call memToAux_in ;Utilizando call pois memToAux_in tem ret no final
+			jmp consultAgLoop
+
+	memToAux_in:
+		pop si
+		pop ax
+		mov cx, 5
+		memToAux_inLoop: ;Executa um loop para inserir os dados
+			mov byte[ax], byte[si] ;Coloca o que está em si para AX
+			add ax, 1
+			add si, 1
+			loop memToAux_inLoop ;Como executamos o loop 5 vezes (executamos 5 somas)
+							;AX já está apontando para a próxima posição livre
+
+		mov byte[ax], 0x10  ;Coloca 0x10 na posição livre
+		add ax, 1    		;Pula para a próxima posição livre
+		mov byte[ax], 0x13	;Move 0x13 para a posição livre
+		add ax, 1			;Pula para a próxima posição livre
+
+		push ax; Coloca a posição atual de ax na pilha
+		push si; Coloca o final da agencia registrada em Si
+
+		ret  ;Retorna o controle
+	consultEnd:
+		call limpaTela
+		mov si, agAuxMemo ;Coloca a base do vetor de agencias em si
+		call printString ;Já vai printar com o /n por causa do 10,13
+
+
 
 desvincularCliente:
 	call limpaTela
