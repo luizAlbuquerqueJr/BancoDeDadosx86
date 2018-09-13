@@ -729,7 +729,6 @@ desvincularCliente:;
 	call limpaTela
 	mov si,msgDesvincularCliente
 	call printString
-<<<<<<< HEAD
 
 	mov ax, agAuxMemo ;coloca o endereço da memória auxiliar em AX
 
@@ -825,9 +824,7 @@ desvincularCliente:
     
 	
 
-=======
 	ret
->>>>>>> 589b96ed27761417b1b09c6554491bbb2cc85f23
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 listarAgencia:
