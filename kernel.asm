@@ -71,8 +71,9 @@ msgInserirCheio: db 'O BancoKOF esta lotado, procure o banco de Valgueiro XD!',1
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
+                                                               ;  ag*8    10,13 final do vetor
+																   ;|       |     |
+agAuxMemo TIMES 57 DB 0 ;Memória auxiliar para consultar agencias (5*8) + (2*8) + 1
 memoria TIMES   46*8   DB   0; declaro um vetor de 46*8 elemento e cada um contem 1 Byte e valor zero
 ;8 devido ao banco conter 8 clientes
 ;46 devido a
@@ -399,66 +400,41 @@ consultarCliente:
 	call printString
 	ret
 
+consultarAgecias: ;lista todas as agencias
+	call limpaTela
+	mov si, msgConsultarAgencias ;Ainda tem que fazer essa string
+	call printString
+
+	ret
+
 desvincularCliente:
 	call limpaTela
 	mov si, msgDesvincularCliente
-	call printString
+	call printString	
+					;para esta função, a posição do cliente deve estar no topo da pilha (pode ser alterado)
+	
+	pop ax 			;Coloca a posição do cliente em ax
+				
+	mov bx, 46
+	mul ax, bx ;multiplica 46 pela posição do cliente e salva em AX
+
+	add ax, 1 ;Soma um em ax para contar o mapa de bits
 
 	mov si, memoria
-	add si, 21  ;Posiciona si na base do primeiro CPF
+	add si, ax  ;Soma a base da memória com ax, para posicionar SI no inicio do cliente a ser deletado
 
-	xor cx, cx ;Zera CX
+	mov cx, 46 ;Coloca 46 em cx para fazer o loop
+
+	deletion:
+		mov byte[si], 0 ;Zera o byte de ax
+		add si, 1 ;si + 1 para zerar o próximo espaço
+		loop deletion
+
+	ret ;Retorna o controle para a parte de onde a função de deletar foi chamada
+
+    
 	
-	insertCpfForCheck:
-		mov ah, 00h
-		int 16h     ;Lê o primeiro valor do CPF
-	
-			cpfCheckLoop:
-				cmp [si], al  ;Compara o valor lido com o primeiro valor do CPF
-				jne ccF       ;Pula pra falha se não for igual
-					ccS: ;CPF Check Success
-						inc cx ;Se bem sucedido, incrementa CX
-						cmp cx, 11 ;Compara cx com 11 (se chegar a 11 quer dizer que já é o CPF todo)
-						je dCPF ;Pula (se já tivermos validado o CPF completo) para dCPF(Delete CPF)
 
-						add si, 1 ;Se ainda não tivermos chegado em 11, adiciona mais um em si para a prox comparação
-						jmp insertCpfForCheck ;Pula pra o inicio
-					ccF: ;CPF Check Failure
-						sub si, cx ;Subtrai o valor de cx de si (Valor de digitos validados até aqui) para setar si para o inicio do CPF que está sendo lido 
-						add si, 46 ;Soma si com 46 para ir para o próximo cliente na memória
-						cmp si, (memoria + 21)*8 ;Compara o valor de SI com o tamanho máximo da memoria para saber se já estamos fora do range
-						jg dFNF ;Se si for maior que o endereçamento da memória, pula  para dFNF (deletion failure NOT FOUND)
-						jmp insertCpfForCheck ;Caso contrário pula para o inicio para checar o próximo CPF
-	
-	dCPF:
-		sub si, 32 ;Subtrai 32 ( 11 do CPF lido + 21 do nome)
-		mov ax, 46 ;Coloca 46 em ax
-		dCPFLoop:
-			mov si, 0 ;Coloca 0 no primeiro endereço de si
-			inc si    ;Incrementa SI
-			dec ax    ;Decrementa AX
-			cmp ax, 0 ;Compara ax com zero (já deletamos o cliente)
-			jne dCPFLoop ; Repete o loop até zerarmos todos os espaços que o cliente ocupava
-			
-			mov si, deletionEnd_msg 
-			call printString  ;Coloca deletionEndmsg em Si e printa, em seguida chama o menu
-
-			call delay
-			call delay
-
-			call menu
-
-
-    dFNF: ;Deletion Failure NOT FOUND
-		mov si, dFNF_Msg 
-		call printString  ;Printa a mensagem de cliente não encontrado e manda pra o menu
-
-		call delay
-		call delay
-
-		jmp menu
-
-	ret
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
