@@ -50,7 +50,9 @@ msgMenu1: db '  1)Inserir Cliente',10,13,0
 msgMenu2: db '  2)Alterar Cliente',10,13,0
 msgMenu3: db '  3)Consultar Cliente',10,13,0
 msgMenu4: db '  4)Desvincular Cliente',10,13,0
-msgMenu5: db '#############################',10,13,0
+msgMenu5: db '  5)Listar Agencias',10,13,0
+msgMenu6: db '  6)Listar Contas de uma Agencia',10,13,0
+msgMenu7: db '#############################',10,13,0
 
 ;Mensagens do ValidaOpçao
 msgOpcaoError: db 'Por favor insira uma das opcoes citadas acima',10,13,0
@@ -64,14 +66,14 @@ msgInserirConta: db 'Insira a conta do cliente',10,13,0
 msgInseridoSucesso: db 'Insercao concluida com sucesso!',10,13,0
 msgInserirCheio: db 'O BancoKOF esta lotado, procure o banco de Valgueiro XD!',10,13,0
 
-;;;;;;;;;;;;;;;;Mensagems usadas na consultarCliente
+;;;;;;;;;;;;;;;;Mensagens usadas na consultarCliente
 msgConsultarCliente1: db 'Nome: ', 0
 msgConsultarCliente2: db 'CPF: ', 0
 msgConsultarCliente3: db 'Agencia: ', 0
 msgConsultarCliente4: db 'Conta: ',0
 
-
-
+;; 6. Strings para Lista conta
+msgListaConta: db 'Insira o numero da Agencia para saber as contas relacionadas:', 10, 13, 0
 
 
 
@@ -679,6 +681,20 @@ desvincularCliente:;
 	ret
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+listarAgencia:
+
+	ret
+
+; Busca em todos em uma agencia as contas relativas a ela
+; @param numeroAgencia
+listarConta:
+
+	call limpaTela
+
+	mov si, msgListaConta
+	call printString
+	
+	ret
 
 
 
@@ -705,7 +721,14 @@ printMenu:
 
 	mov si, msgMenu5
 	call printString
+
+	mov si, msgMenu6
+	call printString
+
+	mov si, msgMenu7
+	call printString
 	ret
+
 
 
 
@@ -732,21 +755,38 @@ validaOpcao:
 	cmp al,'4'
 	je opcao4
 
+	cmp al,'5'
+	je opcao5
+
+	cmp al,'6'
+	je opcao6
+
 	jmp error
 
 	;direciona para a opçao desejada
 	opcao1:
-		mov al,1
-		ret
+		pop ax
+		jmp callOpcao1
+	
 	opcao2:
-		mov al,2
-		ret
+		pop ax
+		jmp callOpcao2
+
 	opcao3:
-		mov al,3
-		ret
+		pop ax
+		jmp callOpcao3
+
 	opcao4:
-		mov al,4
-		ret
+		pop ax
+		jmp callOpcao4
+	
+	opcao5:
+		pop ax
+		jmp callOpcao5
+
+	opcao6:
+		pop ax
+		jmp callOpcao6
 	
 	;printa msg de error
 	error:
@@ -805,32 +845,14 @@ main:
 	mov si,memoria;move para si a base do vetor nome
 	mov word[si] ,0
 
-	menu:
 	;Printa nome do segundo cliente
+	menu:
+		call limpaTela
+		call printMenu
+		call validaOpcao;fica na subrotina até retorna uma das opções 1,2,3,4 no registrador al
+		jmp fim
 
-
-	call limpaTela
-	
-
-	call printMenu
-	call validaOpcao;fica na subrotina até retorna uma das opções 1,2,3,4 no registrador al
-
-	;verifica a opçao desejada
-	cmp al,1
-	je callOpcao1
-	
-	cmp al,2
-	je callOpcao2
-
-	cmp al,3
-	je callOpcao3
-
-	cmp al,4
-	je callOpcao4
-
-	jmp fim
-
-	;direciona para a opçao desejada
+	;Direciona para a opção desejada
 	callOpcao1:
 		call InserirCliente
 		jmp menu
@@ -838,11 +860,21 @@ main:
 	callOpcao2:
 		call alterarCliente
 		jmp fim
+	
 	callOpcao3:
 		call consultarCliente
 		jmp menu
+
 	callOpcao4:
 		call desvincularCliente
+		jmp fim
+
+	callOpcao5:
+		call listarAgencia
+		jmp fim
+
+	callOpcao6:
+		call listarConta
 		jmp fim
 	
 	fim:
