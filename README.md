@@ -1,6 +1,15 @@
-# Projeto Bootloader
-Um jogo só que em Assembly.
+# Projeto Banco de Dados
+Primeira atividade da disciplina IHS.
 
-# Como rodar o kernel
+## Autores
+- Luiz Antonio
+- Thiago Augusto
+- Rafael
+- José Brandão
+- Marco
 
-Basta abrir o terminal e até a pasta onde estão os arquivos e dar um make all
+## Como rodar o kernel
+
+Basta abrir o terminal e até a pasta onde estão os arquivos e executar:
+
+`make all`
