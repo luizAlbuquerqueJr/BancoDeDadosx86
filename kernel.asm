@@ -21,6 +21,11 @@
 ;			byte do mapa de clientes
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+; Tamanho Estrutura dados
+; Nome = 20 char
+; Conta = 13 Char
+; CPF = 11 Char
+;
 
 
 
@@ -82,8 +87,10 @@ msgListaConta: db 'Insira o numero da Agencia para saber as contas relacionadas:
 msgNomeNaoEncontrado: db 'Nome nao encontrado',10,13,0
 msgNomeEncontrado: db 'Nome encontrado',10,13,0
 
+msgNumeroConta: db '00000', 13
 
-memoria TIMES   46*8   DB   0; declaro um vetor de 46*8 elemento e cada um contem 1 Byte e valor zero
+;46 * 8 + 1
+memoria TIMES   369    DB   0; declaro um vetor de 46*8 elemento e cada um contem 1 Byte e valor zero
 nomeTemporario TIMES   21   DB   0; espaço para guardar temporariamente o nome durante consulta (o nome só pode ter 20 bytes)
 ;8 devido ao banco conter 8 clientes
 ;46 devido a
@@ -285,7 +292,7 @@ InserirCliente:
 
 	;procura posição livre
 			;1|2|3|4|5|6|7|8
-			;0|0|0|0|0|0|0|0
+			;0|0|0|1|0|0|0|0
 	;zero: significa vazio 
 	;1 significa ocupado
 	inserir:
@@ -339,6 +346,7 @@ InserirCliente:
 
 	jmp getname
 
+	; Ocupar a o posição a ser inserida
 	um:
 	or byte[si],10000000b
 	jmp getname
@@ -368,8 +376,6 @@ InserirCliente:
 
 	getname:
 
-	
-	 	
 	;jmp inserir
 	;cl indica onde estáa posiçao de memoria que será inserido o novo cliente
 
@@ -694,9 +700,48 @@ listarConta:
 	mov si, msgListaConta
 	call printString
 	
+	mov di, msgNumeroConta; Para usar DI no stosb
+	;stosb: salva em DI o que tem em AL
+
+	;Tamanho máximo da conta = 6 (5 Numero +Enter)
+	mov cx, 6
+	getContaLista:
+	
+		mov ah,0
+		int 16h	
+		stosb
+		cmp al, 13 ; compara se teclou enter
+		je contaLida
+		
+		; Imprimi char lido na tela
+		mov ah, 0Eh
+		mov bh,0
+		int 0x10
+		
+		loop getContaLista
+	
+	; Alterar ultimo valor para Retorno de Carro
+	ajustCheck:
+		dec di
+		mov al, 13
+		stosb
+
+	contaLida:
+		mov cl,0
+		mov si,memoria;move para si a base do vetor nome
+		mov al,byte[si]
+		procuraPosLivreConta:
+		;mov al ,10111110b
+			cmp cl,8
+			je semConta;só é permitido 8 pessoas no banco
+
+			shl al,1;shift para esquerda e o bit "perdido é colocado na flag do carry"
+			inc cl
+			jc procuraPosLivreConta	
+	
+	semConta:
+
 	ret
-
-
 
 ;printa o menu de opçoes
 printMenu:
@@ -840,7 +885,9 @@ limpaTela:
 	
 	ret
 
-main: 
+main:
+	xor ax, ax
+	mov es, ax
 	;Zera os byte do mapa de clientes
 	mov si,memoria;move para si a base do vetor nome
 	mov word[si] ,0
