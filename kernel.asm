@@ -39,8 +39,6 @@ mov ah, 0Eh
 mov bh,0
 int 0x10
 ret
-;;;;;
-go_to_ag: db 33
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 pularLinha: db '', 10,13,0
@@ -59,7 +57,7 @@ msgMenu3: db '  3)Consultar Cliente',10,13,0
 msgMenu4: db '  4)Desvincular Cliente',10,13,0
 msgMenu5: db '  5)Listar Agencias',10,13,0
 msgMenu6: db '  6)Listar Contas de uma Agencia',10,13,0
-msgMenu7: db '#############################',10,13,0
+;msgMenu7: db '#############################',10,13,0
 
 ;Mensagens do ValidaOpçao
 msgOpcaoError: db 'Por favor insira uma das opcoes citadas acima',10,13,0
@@ -71,7 +69,7 @@ msgInserirCPF: db 'Insira o cpf do cliente',10,13,0
 msgInserirAgencia: db 'Insira a agencia do cliente',10,13,0
 msgInserirConta: db 'Insira a conta do cliente',10,13,0
 msgInseridoSucesso: db 'Insercao concluida com sucesso!',10,13,0
-msgInserirCheio: db 'O BancoKOF esta lotado, procure o banco de Valgueiro XD!',10,13,0
+msgInserirCheio: db 'O BancoKOF esta lotado!',10,13,0
 
 ;;;;;;;;;;;;;;;;Mensagens usadas na consultarCliente
 msgConsultarCliente1: db 'Nome: ', 0
@@ -80,14 +78,17 @@ msgConsultarCliente3: db 'Agencia: ', 0
 msgConsultarCliente4: db 'Conta: ',0
 
 ;; 6. Strings para Lista conta
-msgListaConta: db 'Insira o numero da Agencia para saber as contas relacionadas:', 10, 13, 0
+msgListaConta: db 'Insira o num da Agencia:', 10, 13, 0
+
+
+msgInserirPosCliente: db 'Insira a pos do cliente',10,13,0
 
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 msgNomeNaoEncontrado: db 'Nome nao encontrado',10,13,0
-msgNomeEncontrado: db 'Nome encontrado',10,13,0
+;msgNomeEncontrado: db 'Nome encontrado',10,13,0
 
 msgNumeroConta: db '00000', 13
 
@@ -710,14 +711,6 @@ consultarCliente:
 	call printString
 	
 
-	;mov si,msgConsultarCliente1
-	;call printString
-
-
-	;printa nome
-	
-
-
 	call delay
 	call delay
 	
@@ -725,105 +718,100 @@ consultarCliente:
 
 	ret
 
+
 desvincularCliente:; 
-	call limpaTela
-	mov si,msgDesvincularCliente
-	call printString
+	call identificaCliente
 
-	mov ax, agAuxMemo ;coloca o endereço da memória auxiliar em AX
+	mov si,memoria;apontando pra byte do mapa para setar para zero o bit do cliente
 
-	mov si, memoria 
-	add si, 1 ;Pula o mapa de bits
+	sub al,'0'
 
-	add si, 33 ;Soma 33 em si para ir para a base da primeira agencia
 
-	push ax ;Coloca Ax e SI na pilha
-	push si
+	mov cl,al
 
-	call memToAux_in ;Até aqui, nós transferimos o primeiro valor
+	sub cl,1;pra ele ocupar o segundo byte qnd a posiçao de memoria for igual 1
 
-    mov bx, 0 ;Utilizaremos bx como contador de loop pois estaremos utilizando cx
-
-	consultAgLoop:  ; bl controla o loop interno, bh controla o loop externo
-		cmp bh, 7    
-		je consultEnd
-
-		pop si
-		add si, 41 ; 41 = 8 (para ir até a base do próximo nome) + 33 (para ir até a agencia a partir da base)
-		push si ;Coloca o valor de si na pilha (pilha = [base próximo nome na memória, espaço vazio mem auxiliar])
-		
-		mov ax, agAuxMemo ;Coloca a base do auxiliar em AX
-		add bh, 1
-		mov bl, 0
-		cmpLoop:
-			cmp bl, 5
-			je cmpLoopTrue
-			cmp byte[si], byte[ax] ;Compara os valores para saber se a agência já foi lida
-			add bl, 1 ;Soma um em BX (já executei n comparações)
-			add si, 1
-			add ax, 1
-			je cmpLoop
-			jmp consultAgLoop
-
-	cmpLoopTrue:
-			call memToAux_in ;Utilizando call pois memToAux_in tem ret no final
-			jmp consultAgLoop
-
-	memToAux_in:
-		pop si
-		pop ax
-		mov cx, 5
-		memToAux_inLoop: ;Executa um loop para inserir os dados
-			mov byte[ax], byte[si] ;Coloca o que está em si para AX
-			add ax, 1
-			add si, 1
-			loop memToAux_inLoop ;Como executamos o loop 5 vezes (executamos 5 somas)
-							;AX já está apontando para a próxima posição livre
-
-		mov byte[ax], 0x10  ;Coloca 0x10 na posição livre
-		add ax, 1    		;Pula para a próxima posição livre
-		mov byte[ax], 0x13	;Move 0x13 para a posição livre
-		add ax, 1			;Pula para a próxima posição livre
-
-		push ax; Coloca a posição atual de ax na pilha
-		push si; Coloca o final da agencia registrada em Si
-
-		ret  ;Retorna o controle
-	consultEnd:
-		call limpaTela
-		mov si, agAuxMemo ;Coloca a base do vetor de agencias em si
-		call printString ;Já vai printar com o /n por causa do 10,13
+	cmp cl,0
+	je clearZero
+	cmp cl,1
+	je clearUm
+	cmp cl,2
+	je clearDois
+	cmp cl,3
+	je clearTres
+	cmp cl,4
+	je clearQuatro
+	cmp cl,5
+	je clearCinco
+	cmp cl,6
+	je clearSeis
+	cmp cl,7
+	je clearSete
+	jmp fimm
 
 
 
-desvincularCliente:
-	call limpaTela
-	mov si, msgDesvincularCliente
-	call printString	
-					;para esta função, a posição do cliente deve estar no topo da pilha (pode ser alterado)
+	clearZero:
+		and byte[si],01111111b
+		jmp limpando00
+	clearUm
+		and byte[si],10111111b
+		jmp limpando00
+	clearDois
+		and byte[si],11011111b
+		jmp limpando00
+
+	clearTres
+		and byte[si],11101111b
+		jmp limpando00
+
+	clearQuatro
+		and byte[si],11110111b
+		jmp limpando00
+
+	clearCinco
+		and byte[si],11111011b
+		jmp limpando00
+	clearSeis
+		and byte[si],11111101b
+		jmp limpando00
+	clearSete
+		and byte[si],11111110b
+		jmp limpando00
+	limpando00:
+	mov ax,46;(20 bytes pro nome 1byte fim do nome)
+	; (11 por cpf + 1 byte pro fim do cpf)
+	; (5 pra agencia + 1 pro fim da agencoa )
+	; (6 pra conta + 1 pro fim da agencoa
+	mul cl
+
+	inc ax;pula o primeiro byte q é o byte do mapa
+
+
+
+
 	
-	pop ax 			;Coloca a posição do cliente em ax
-				
-	mov bx, 46
-	mul ax, bx ;multiplica 46 pela posição do cliente e salva em AX
-
-	add ax, 1 ;Soma um em ax para contar o mapa de bits
-
 	mov si, memoria
-	add si, ax  ;Soma a base da memória com ax, para posicionar SI no inicio do cliente a ser deletado
+	add si,ax
+	;call printString
 
-	mov cx, 46 ;Coloca 46 em cx para fazer o loop
+	mov cx,0
+	limpando0:
+		mov byte[si],0
+		inc si
+		inc cx
+		cmp cx,45
+		jne limpando0
 
-	deletion:
-		mov byte[si], 0 ;Zera o byte de ax
-		add si, 1 ;si + 1 para zerar o próximo espaço
-		loop deletion
+	call limpaTela
+	;mov si,msgDesvinculadoSucesso
+	;call printString
 
-	ret ;Retorna o controle para a parte de onde a função de deletar foi chamada
-
-    
 	
+	call delay
 
+	fimm:
+	
 	ret
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -910,74 +898,11 @@ printMenu:
 	mov si, msgMenu6
 	call printString
 
-	mov si, msgMenu7
-	call printString
+	;mov si, msgMenu7
+	;call printString
 	ret
 
 
-
-
-;Retorna apenas um dos valores 1 2, 3 ou 4
-validaOpcao:
-	;printaPulaLinha
-	mov si, pularLinha
-	call printString
-	
-	;captura letra e coloca em al
-	mov ah,0
-	int 16h
-	
-	;verifica a opçao desejada
-	cmp al,'1'
-	je opcao1
-	
-	cmp al,'2'
-	je opcao2
-
-	cmp al,'3'
-	je opcao3
-
-	cmp al,'4'
-	je opcao4
-
-	cmp al,'5'
-	je opcao5
-
-	cmp al,'6'
-	je opcao6
-
-	jmp error
-
-	;direciona para a opçao desejada
-	opcao1:
-		pop ax
-		jmp callOpcao1
-	
-	opcao2:
-		pop ax
-		jmp callOpcao2
-
-	opcao3:
-		pop ax
-		jmp callOpcao3
-
-	opcao4:
-		pop ax
-		jmp callOpcao4
-	
-	opcao5:
-		pop ax
-		jmp callOpcao5
-
-	opcao6:
-		pop ax
-		jmp callOpcao6
-	
-	;printa msg de error
-	error:
-	mov si,msgOpcaoError
-	call printString
-	jmp validaOpcao
 
 
 
@@ -1057,8 +982,26 @@ main:
 		call limpaTela
 		
 		call printMenu
-		call validaOpcao;fica na subrotina até retorna uma das opções 1,2,3,4 no registrador al
-		jmp fim
+
+		;captura caracter e coloca em al
+		validaOpcao1:
+			mov ah,0
+			int 16h
+
+			cmp al,'1'
+			je callOpcao1
+			cmp al,'2'
+			je callOpcao2
+			cmp al,'3'
+			je callOpcao3
+			cmp al,'4'
+			je callOpcao4
+			cmp al,'5'
+			je callOpcao5
+			cmp al,'6'
+			je callOpcao6
+			jmp validaOpcao1
+
 
 	;Direciona para a opção desejada
 	callOpcao1:
@@ -1076,7 +1019,7 @@ main:
 
 	callOpcao4:
 		call desvincularCliente
-		jmp fim
+		jmp menu
 
 	callOpcao5:
 		call listarAgencia
