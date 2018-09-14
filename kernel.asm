@@ -34,11 +34,11 @@ jmp main
 
 
 ;funções importantes porem não vale a pena ficar chaando(call) pois diminui a eficiencia do codigo
-printaCaracter:
-mov ah, 0Eh
-mov bh,0
-int 0x10
-ret
+;printaCaracter:
+;mov ah, 0Eh
+;mov bh,0
+;int 0x10
+;ret
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 pularLinha: db '', 10,13,0
@@ -49,7 +49,7 @@ msgDesvincularCliente: db 'Desvincular Cliente', 10,13,0
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;Mensagems do menu
-msgBemVindo: db '#### Bem vindo ao BancoKOF ###', 10,13,0
+msgBemVindo: db '#### Bem vindo ao BancoKOF', 10,13,0
 msgMenu0: db 'Escolha uma opcao:',10,13,0
 msgMenu1: db '  1)Inserir Cliente',10,13,0
 msgMenu2: db '  2)Alterar Cliente',10,13,0
@@ -57,10 +57,8 @@ msgMenu3: db '  3)Consultar Cliente',10,13,0
 msgMenu4: db '  4)Desvincular Cliente',10,13,0
 msgMenu5: db '  5)Listar Agencias',10,13,0
 msgMenu6: db '  6)Listar Contas de uma Agencia',10,13,0
-;msgMenu7: db '#############################',10,13,0
 
-;Mensagens do ValidaOpçao
-msgOpcaoError: db 'Por favor insira uma das opcoes citadas acima',10,13,0
+
 
 ;;;;;;;;;;;;;;Mensgens usadas na inserção
 ;MEnsagens para capturar nome, CPF, conta e agência
@@ -68,7 +66,7 @@ msgInserirNome: db 'Insira o nome do cliente',10,13,0
 msgInserirCPF: db 'Insira o cpf do cliente',10,13,0
 msgInserirAgencia: db 'Insira a agencia do cliente',10,13,0
 msgInserirConta: db 'Insira a conta do cliente',10,13,0
-msgInseridoSucesso: db 'Insercao concluida com sucesso!',10,13,0
+msgInseridoSucesso: db 'Insercao concluida!',10,13,0
 msgInserirCheio: db 'O BancoKOF esta lotado!',10,13,0
 
 ;;;;;;;;;;;;;;;;Mensagens usadas na consultarCliente
@@ -78,10 +76,10 @@ msgConsultarCliente3: db 'Agencia: ', 0
 msgConsultarCliente4: db 'Conta: ',0
 
 ;; 6. Strings para Lista conta
-msgListaConta: db 'Insira o num da Agencia:', 10, 13, 0
+msgListaConta: db 'Insira agencia:', 10, 13, 0
 
 
-msgInserirPosCliente: db 'Insira a pos do cliente',10,13,0
+;msgInserirPosCliente: db 'Insira a pos do cliente',10,13,0
 
 
 
@@ -90,11 +88,12 @@ msgInserirPosCliente: db 'Insira a pos do cliente',10,13,0
 msgNomeNaoEncontrado: db 'Nome nao encontrado',10,13,0
 ;msgNomeEncontrado: db 'Nome encontrado',10,13,0
 
-msgNumeroConta: db '00000', 13
+
 
 ;46 * 8 + 1
 memoria TIMES   369    DB   0; declaro um vetor de 46*8 elemento e cada um contem 1 Byte e valor zero
 nomeTemporario TIMES   21   DB   0; espaço para guardar temporariamente o nome durante consulta (o nome só pode ter 20 bytes)
+agenciaTemporario TIMES   6   DB   0; espaço para guardar temporariamente o nome durante consulta (o nome só pode ter 20 bytes)
 ;8 devido ao banco conter 8 clientes
 ;46 devido a
 	;(20 bytes pro nome 1byte fim do nome)
@@ -414,6 +413,10 @@ InserirCliente:
 	;mov byte[si],al
 
 
+
+	inserirCliente1:
+
+
 	getname:
 
 	;jmp inserir
@@ -606,9 +609,17 @@ cheio:;printa msg do banco está cheio dá um delay
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;AS funções que falta fazer;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 alterarCliente:
-	call limpaTela
-	mov si,msgAlterarCliente
-	call printString
+	call identificaCliente
+	cmp al, 0
+	je fimAltera
+	mov cl,al
+	sub cl,'0'
+	jmp inserirCliente1
+
+
+
+
+	fimAltera:
 	ret
 
 consultarCliente:
@@ -623,20 +634,6 @@ consultarCliente:
 	mov si,msgConsultarCliente
 	call printString
 	
-	
-	;captura caracter e coloca em al
-		;mov ah,0
-		;int 16h
-		
-
-
-	;printa caracter q está em al
-		;mov ah, 0Eh
-		;mov bh,0
-		;int 0x10
-	
-	;
-
 
 
 	sub al,'0'
@@ -816,60 +813,167 @@ desvincularCliente:;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 listarAgencia:
+	
+	call limpaTela
+
+	mov cx,0
+	printandoAgencia:
+
+		mov ax,46;(20 bytes pro nome 1byte fim do nome)
+		; (11 por cpf + 1 byte pro fim do cpf)
+		; (5 pra agencia + 1 pro fim da agencoa )
+		; (6 pra conta + 1 pro fim da agencoa
+		;mov dl,0
+
+		mul cx;dl contem o valor da posição do cliente
+
+		inc ax;pular byte do mapa
+		add ax,21
+		add ax,12
+
+
+		mov si, memoria
+		add si, ax
+
+		call printString
+		mov si,pularLinha
+		call printString
+		
+		inc cx
+		cmp cx,7
+		jne printandoAgencia
+		call delay
 
 	ret
+
 
 ; Busca em todos em uma agencia as contas relativas a ela
 ; @param numeroAgencia
 listarConta:
-
 	call limpaTela
 
-	mov si, msgListaConta
+;;;;;;captura nome e coloca na posição nomeTemporario
+	mov cx,5;20 caracteres
+	
+
+	;printa msg para inseir nome
+	mov si,msgConsultarCliente3
 	call printString
 	
-	mov di, msgNumeroConta; Para usar DI no stosb
-	;stosb: salva em DI o que tem em AL
 
-	;Tamanho máximo da conta = 6 (5 Numero +Enter)
-	mov cx, 6
-	getContaLista:
 	
-		mov ah,0
-		int 16h	
-		stosb
-		cmp al, 13 ; compara se teclou enter
-		je contaLida
+	mov si,agenciaTemporario
+	capturandoAgencia1:
+	
+	;captura caracter e coloca em al
+	mov ah,0
+	int 16h
+	mov byte[si],al
+	
+	cmp al,13
+	je verificaAgencia;se o usuario apertar enter sai do laço
+
+	;printa caracter q está em al
+	mov ah, 0Eh
+	mov bh,0
+	int 0x10
+
+	
+	add si,1
+	
+	loop capturandoAgencia1
+
+
+	verificaAgencia:
+	call  limpaTela
+
+	;mov si, agenciaTemporario
+	;call printString
+	;call delay
+
+	mov cx,0
+	;verifica cliente
+	verificaCliente:
+	
+	
+	cmp cx,7
+	je fimLista
+	mov ax,46;(20 bytes pro nome 1byte fim do nome)
+	; (11 por cpf + 1 byte pro fim do cpf)
+	; (5 pra agencia + 1 pro fim da agencoa )
+	; (6 pra conta + 1 pro fim da agencoa
+	;mov dl,0
+
+	mul cx;dl contem o valor da posição do cliente
+
+	inc ax;pular byte do mapa
+	add ax,21
+	add ax,12
+
+	mov dx,0
+	verificandoAgencia
+
+		mov si, memoria
+		add si, ax;ax nao pode sermodificado pois indica a pos da agencia do cliente
+		add si,dx
+
+		push ax;salva o valor de ax q contem a pos da agencia do cliente
+
+		mov ah,byte[si]
+
 		
-		; Imprimi char lido na tela
-		mov ah, 0Eh
-		mov bh,0
-		int 0x10
+
+
+
+		mov si,agenciaTemporario
+		add si,dx
+		mov al , byte[si]
+
+
+
+		cmp al,ah
+		je terminou?
+		pop ax
+
+		jne proximaAgencia
+
+		terminou?:
+		cmp al,0
+		je achou
+
+
+		pop ax
+		inc dx
+		cmp dx,5
+		jne verificandoAgencia
+
+
+	proximaAgencia:
+		inc cx
+		jmp verificaCliente
+
+	achou:
+		pop ax
+		add ax, 6
+
+		mov si, memoria
+		add si, ax
 		
-		loop getContaLista
-	
-	; Alterar ultimo valor para Retorno de Carro
-	ajustCheck:
-		dec di
-		mov al, 13
-		stosb
+		cmp byte[si],0
+		inc cx
+		je verificaCliente
+		call printString
+		
 
-	contaLida:
-		mov cl,0
-		mov si,memoria;move para si a base do vetor nome
-		mov al,byte[si]
-		procuraPosLivreConta:
-		;mov al ,10111110b
-			cmp cl,8
-			je semConta;só é permitido 8 pessoas no banco
+		mov si,pularLinha
+		call printString
 
-			shl al,1;shift para esquerda e o bit "perdido é colocado na flag do carry"
-			inc cl
-			jc procuraPosLivreConta	
-	
-	semConta:
+		call delay
+		jmp verificaCliente
 
-	ret
+		
+		fimLista
+			ret
 
 ;printa o menu de opçoes
 printMenu:
@@ -1010,7 +1114,7 @@ main:
 
 	callOpcao2:
 		call alterarCliente
-		jmp fim
+		jmp menu
 	
 	callOpcao3:
 		call consultarCliente
@@ -1023,11 +1127,11 @@ main:
 
 	callOpcao5:
 		call listarAgencia
-		jmp fim
+		jmp menu
 
 	callOpcao6:
 		call listarConta
-		jmp fim
+		jmp menu
 	
 	fim:
 
